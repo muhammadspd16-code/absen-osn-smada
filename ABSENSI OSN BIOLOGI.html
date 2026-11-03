@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absensi OSN Biologi - SMAN 2 Banjarmasin</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- html2pdf for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Spinner Animation */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #ffffff;
+            width: 24px;
+            height: 24px;
+            -webkit-animation: spin 1s linear infinite;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 min-h-screen text-gray-800 antialiased selection:bg-blue-300 selection:text-blue-900">
+
+    <!-- Global Loading Overlay (Auth Init) -->
+    <div id="global-loading" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-blue-900 text-white">
+        <div class="spinner mb-4 w-12 h-12 border-4"></div>
+        <h2 class="text-xl font-semibold">Menyiapkan Sistem...</h2>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 py-8 relative min-h-screen flex flex-col justify-center items-center">
+        
+        <!-- Header -->
+        <div class="text-center mb-8 text-white w-full max-w-2xl hidden" id="main-header">
+            <img src="https://upload.wikimedia.org/wikipedia/id/8/87/Logo_SMAN_2_Banjarmasin.png" 
+                 onerror="this.src='https://placehold.co/100x100/ffffff/1e3a8a?text=SMADA'" 
+                 alt="Logo SMAN 2 Banjarmasin" class="w-20 h-20 mx-auto mb-4 rounded-full shadow-lg bg-white p-1">
+            <h1 class="text-3xl font-bold tracking-tight mb-2">OSN Biologi SMAN 2 Banjarmasin</h1>
+            <p class="text-blue-200 font-medium">Sistem Presensi Kehadiran Berbasis Lokasi</p>
+        </div>
+
+        <!-- SCREEN 1: Role Selection -->
+        <div id="screen-role" class="glass w-full max-w-md rounded-2xl p-8 shadow-2xl transform transition-all hidden">
+            <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Pilih Akses Anda</h2>
+            <div class="space-y-4">
+                <button onclick="ui.showScreen('student')" class="w-full flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-semibold transition shadow-md hover:shadow-lg">
+                    <i class="fas fa-user-graduate text-xl"></i> Akses Siswa
+                </button>
+                <button onclick="ui.showScreen('admin-login')" class="w-full flex items-center justify-center gap-3 bg-gray-100 hover:bg-gray-200 text-gray-800 py-4 rounded-xl font-semibold transition border border-gray-300 shadow-sm hover:shadow-md">
+                    <i class="fas fa-user-shield text-xl"></i> Akses Admin
+                </button>
+            </div>
+        </div>
+
+        <!-- SCREEN 2: Admin Login -->
+        <div id="screen-admin-login" class="glass w-full max-w-md rounded-2xl p-8 shadow-2xl transform transition-all hidden">
+            <button onclick="ui.showScreen('role')" class="text-gray-500 hover:text-gray-800 mb-4 flex items-center gap-2 transition">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </button>
+            <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Login Admin</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Kode Akses / PIN</label>
+                    <input type="password" id="admin-pin" placeholder="Masukkan PIN Admin" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                </div>
+                <button onclick="app.loginAdmin()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-semibold transition shadow-md">
+                    Masuk
+                </button>
+                <p class="text-xs text-center text-gray-500 mt-2">Petunjuk: Gunakan PIN "adminosn"</p>
+            </div>
+        </div>
+
+        <!-- SCREEN 3: Student Attendance Form -->
+        <div id="screen-student" class="glass w-full max-w-md rounded-2xl p-8 shadow-2xl transform transition-all hidden">
+            <button onclick="ui.showScreen('role')" class="text-gray-500 hover:text-gray-800 mb-4 flex items-center gap-2 transition">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </button>
+            <h2 class="text-2xl font-bold text-gray-800 mb-1">Form Absensi</h2>
+            <p class="text-sm text-gray-500 mb-6">Pastikan Anda berada di area SMAN 2 Banjarmasin.</p>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap</label>
+                    <input type="text" id="student-name" placeholder="Misal: Budi Santoso" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition capitalize">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Kelas</label>
+                    <input type="text" id="student-class" placeholder="Misal: XI MIPA 1" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
+                </div>
+                
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
+                    <i class="fas fa-map-marker-alt text-blue-500 mt-1 text-lg"></i>
+                    <div>
+                        <h4 class="text-sm font-semibold text-blue-900">Validasi Lokasi Otomatis</h4>
+                        <p class="text-xs text-blue-700 mt-1">Sistem akan membaca koordinat GPS Anda untuk memastikan kehadiran di area sekolah.</p>
+                    </div>
+                </div>
+
+                <button id="btn-submit-attendance" onclick="app.submitAttendance()" class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold transition shadow-lg hover:shadow-xl relative overflow-hidden">
+                    <span id="btn-text">Absen Sekarang</span>
+                    <div id="btn-spinner" class="spinner hidden"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- SCREEN 4: Admin Dashboard -->
+        <div id="screen-admin" class="glass w-full max-w-6xl rounded-2xl p-6 md:p-8 shadow-2xl transform transition-all hidden flex-col">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Dashboard Admin</h2>
+                    <p class="text-gray-500 text-sm">Data Kehadiran OSN Biologi SMAN 2 Banjarmasin</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="app.exportToWord()" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                        <i class="fas fa-file-word"></i> Word
+                    </button>
+                    <button onclick="app.exportToExcel()" class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                        <i class="fas fa-file-excel"></i> Excel
+                    </button>
+                    <button onclick="app.exportToPDF()" class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
+                    <button onclick="ui.showScreen('role')" class="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg text-sm font-semibold transition ml-2">
+                        <i class="fas fa-sign-out-alt"></i> Keluar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats/Info -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500 font-semibold mb-1">Total Hadir</p>
+                        <h3 class="text-2xl font-bold text-gray-800" id="stat-total">0</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xl">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex-grow" id="export-table-container">
+                <!-- Header for PDF Export (Hidden normally) -->
+                <div id="pdf-header" class="hidden text-center py-6 border-b border-gray-200">
+                    <h2 class="text-xl font-bold uppercase">Laporan Kehadiran OSN Biologi</h2>
+                    <h3 class="text-lg font-semibold text-gray-700">SMAN 2 Banjarmasin</h3>
+                    <p class="text-sm text-gray-500 mt-1" id="pdf-date"></p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse" id="attendance-table">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 text-sm uppercase tracking-wider">
+                                <th class="p-4 font-semibold w-12 text-center">No</th>
+                                <th class="p-4 font-semibold">Nama Siswa</th>
+                                <th class="p-4 font-semibold">Kelas</th>
+                                <th class="p-4 font-semibold">Waktu & Tanggal</th>
+                                <th class="p-4 font-semibold">Jarak dari Sekolah</th>
+                                <th class="p-4 font-semibold">Status Lokasi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body" class="text-gray-700 text-sm divide-y divide-gray-100">
+                            <!-- Rows will be injected here -->
+                            <tr><td colspan="6" class="p-8 text-center text-gray-400">Memuat data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Custom Modal UI (Replacing alert/confirm) -->
+    <div id="custom-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onclick="ui.closeModal()"></div>
+        <div class="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-sm relative z-10 transform scale-95 transition-transform duration-300" id="modal-content-box">
+            <div class="text-center">
+                <div id="modal-icon" class="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4">
+                    <!-- Icon injected here -->
+                </div>
+                <h3 id="modal-title" class="text-xl font-bold text-gray-900 mb-2">Title</h3>
+                <p id="modal-message" class="text-gray-600 text-sm mb-6">Message goes here</p>
+                <button onclick="ui.closeModal()" id="modal-btn" class="w-full py-3 rounded-xl font-bold text-white transition shadow-md">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FIREBASE AND APP LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Configuration Variables
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'osn-biologi-sman2-banjarmasin';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            // Fallback for isolated testing if __firebase_config is missing in environment
+            apiKey: "dummy-key",
+            projectId: "dummy-project",
+        };
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Coordinate Target: SMAN 2 Banjarmasin
+        const TARGET_LAT = -3.3173;
+        const TARGET_LNG = 114.5833;
+        const MAX_RADIUS_KM = 0.5; // 500 meters tolerance
+
+        // App State
+        const state = {
+            db: null,
+            auth: null,
+            user: null,
+            attendances: [],
+            unsubscribe: null
+        };
+
+        // Initialize Firebase
+        const initFirebase = async () => {
+            try {
+                const app = initializeApp(firebaseConfig);
+                state.db = getFirestore(app);
+                state.auth = getAuth(app);
+
+                // Authenticaton Rules constraint: MUST auth first
+                if (initialAuthToken) {
+                    await signInWithCustomToken(state.auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(state.auth);
+                }
+                
+                state.user = state.auth.currentUser;
+                
+                // Hide loading, show Role Selection
+                document.getElementById('global-loading').classList.add('hidden');
+                document.getElementById('main-header').classList.remove('hidden');
+                ui.showScreen('role');
+
+            } catch (error) {
+                console.error("Firebase Init Error:", error);
+                document.getElementById('global-loading').innerHTML = `
+                    <div class="text-center p-4">
+                        <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-3"></i>
+                        <h2 class="text-xl font-bold text-white mb-2">Koneksi Gagal</h2>
+                        <p class="text-blue-200 text-sm">Gagal terhubung ke server. Silakan muat ulang halaman.</p>
+                    </div>
+                `;
+            }
+        };
+
+        // --- UI Manager ---
+        const ui = {
+            screens: ['role', 'admin-login', 'student', 'admin'],
+            
+            showScreen(screenId) {
+                // Hide all
+                this.screens.forEach(s => {
+                    document.getElementById(`screen-${s}`).classList.add('hidden');
+                });
+                // Show target
+                const el = document.getElementById(`screen-${screenId}`);
+                el.classList.remove('hidden');
+                
+                // Trigger admin specific logic if opening admin
+                if(screenId === 'admin') {
+                    app.loadAdminData();
+                } else {
+                    if (state.unsubscribe) {
+                        state.unsubscribe(); // Stop listening if not in admin
+                        state.unsubscribe = null;
+                    }
+                }
+            },
+
+            showModal(type, title, message) {
+                const modal = document.getElementById('custom-modal');
+                const contentBox = document.getElementById('modal-content-box');
+                const iconContainer = document.getElementById('modal-icon');
+                const titleEl = document.getElementById('modal-title');
+                const msgEl = document.getElementById('modal-message');
+                const btnEl = document.getElementById('modal-btn');
+
+                titleEl.textContent = title;
+                msgEl.textContent = message;
+                modal.classList.remove('hidden');
+                
+                // Reset classes
+                iconContainer.className = 'w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4 text-3xl';
+                btnEl.className = 'w-full py-3 rounded-xl font-bold text-white transition shadow-md';
+
+                if (type === 'success') {
+                    iconContainer.classList.add('bg-green-100', 'text-green-500');
+                    iconContainer.innerHTML = '<i class="fas fa-check"></i>';
+                    btnEl.classList.add('bg-green-500', 'hover:bg-green-600');
+                } else if (type === 'error') {
+                    iconContainer.classList.add('bg-red-100', 'text-red-500');
+                    iconContainer.innerHTML = '<i class="fas fa-times"></i>';
+                    btnEl.classList.add('bg-red-500', 'hover:bg-red-600');
+                } else {
+                    iconContainer.classList.add('bg-blue-100', 'text-blue-500');
+                    iconContainer.innerHTML = '<i class="fas fa-info"></i>';
+                    btnEl.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                }
+
+                // Animate pop
+                setTimeout(() => {
+                    contentBox.classList.remove('scale-95');
+                    contentBox.classList.add('scale-100');
+                }, 10);
+            },
+
+            closeModal() {
+                const modal = document.getElementById('custom-modal');
+                const contentBox = document.getElementById('modal-content-box');
+                contentBox.classList.remove('scale-100');
+                contentBox.classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 200);
+            },
+
+            setLoadingButton(isLoading) {
+                const btn = document.getElementById('btn-submit-attendance');
+                const text = document.getElementById('btn-text');
+                const spinner = document.getElementById('btn-spinner');
+                
+                if(isLoading) {
+                    btn.disabled = true;
+                    btn.classList.add('opacity-75', 'cursor-not-allowed');
+                    text.textContent = 'Memvalidasi Lokasi...';
+                    spinner.classList.remove('hidden');
+                } else {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                    text.textContent = 'Absen Sekarang';
+                    spinner.classList.add('hidden');
+                }
+            }
+        };
+
+        // --- Geolocation Math ---
+        // Haversine formula to calculate distance between two coordinates in km
+        const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
+            const R = 6371; // Radius of the earth in km
+            const dLat = deg2rad(lat2 - lat1);
+            const dLon = deg2rad(lon2 - lon1); 
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2); 
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+            return R * c; 
+        };
+        const deg2rad = (deg) => deg * (Math.PI/180);
+
+        // --- Core Application Logic ---
+        const app = {
+            
+            loginAdmin() {
+                const pin = document.getElementById('admin-pin').value;
+                if(pin === 'adminosn') {
+                    document.getElementById('admin-pin').value = '';
+                    ui.showScreen('admin');
+                } else {
+                    ui.showModal('error', 'Akses Ditolak', 'PIN yang Anda masukkan salah.');
+                }
+            },
+
+            async submitAttendance() {
+                if (!state.user) return; // Guard clause for firebase ops
+
+                const name = document.getElementById('student-name').value.trim();
+                const studentClass = document.getElementById('student-class').value.trim();
+
+                if(!name || !studentClass) {
+                    ui.showModal('error', 'Form Tidak Lengkap', 'Harap isi Nama dan Kelas Anda.');
+                    return;
+                }
+
+                ui.setLoadingButton(true);
+
+                if ("geolocation" in navigator) {
+                    navigator.geolocation.getCurrentPosition(
+                        async (position) => {
+                            const userLat = position.coords.latitude;
+                            const userLng = position.coords.longitude;
+                            
+                            const distance = getDistanceFromLatLonInKm(userLat, userLng, TARGET_LAT, TARGET_LNG);
+                            
+                            if(distance <= MAX_RADIUS_KM) {
+                                // Within radius, save to Firestore
+                                try {
+                                    // Construct specific path required: /artifacts/{appId}/public/data/{collectionName}
+                                    const path = collection(state.db, 'artifacts', appId, 'public', 'data', 'attendances');
+                                    
+                                    const currentTime = new Date();
+                                    const timestamp = currentTime.getTime();
+                                    // Formatting date using device locale
+                                    const deviceDateStr = currentTime.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                                    const deviceTimeStr = currentTime.toLocaleTimeString('id-ID');
+                                    const fullDateTime = `${deviceDateStr}, ${deviceTimeStr}`;
+
+                                    await addDoc(path, {
+                                        name: name,
+                                        studentClass: studentClass,
+                                        lat: userLat,
+                                        lng: userLng,
+                                        distanceKm: distance,
+                                        timestamp: timestamp,
+                                        dateTimeStr: fullDateTime,
+                                        status: 'Hadir Tepat Lokasi'
+                                    });
+
+                                    ui.setLoadingButton(false);
+                                    ui.showModal('success', 'Berhasil Absen', 'Kehadiran Anda telah dicatat dalam sistem.');
+                                    
+                                    // Clear form
+                                    document.getElementById('student-name').value = '';
+                                    document.getElementById('student-class').value = '';
+
+                                } catch (error) {
+                                    console.error("Firestore Error: ", error);
+                                    ui.setLoadingButton(false);
+                                    ui.showModal('error', 'Gagal Menyimpan', 'Terjadi kesalahan sistem. Coba lagi.');
+                                }
+                            } else {
+                                // Outside radius
+                                ui.setLoadingButton(false);
+                                const distStr = distance < 1 ? `${Math.round(distance*1000)} Meter` : `${distance.toFixed(2)} KM`;
+                                ui.showModal('error', 'Lokasi Tidak Valid', `Anda terdeteksi berada sejauh ${distStr} dari SMAN 2 Banjarmasin. Jarak maksimal yang diizinkan adalah 500 Meter.`);
+                            }
+                        },
+                        (error) => {
+                            ui.setLoadingButton(false);
+                            let msg = "Tidak dapat mendeteksi lokasi.";
+                            if (error.code === 1) msg = "Akses lokasi ditolak. Izinkan browser membaca lokasi Anda.";
+                            else if (error.code === 2) msg = "Sinyal GPS tidak tersedia.";
+                            else if (error.code === 3) msg = "Waktu permintaan lokasi habis (Timeout).";
+                            ui.showModal('error', 'Gagal Akses GPS', msg);
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 15000,
+                            maximumAge: 0
+                        }
+                    );
+                } else {
+                    ui.setLoadingButton(false);
+                    ui.showModal('error', 'Tidak Didukung', 'Browser Anda tidak mendukung fitur Geolocation.');
+                }
+            },
+
+            loadAdminData() {
+                if (!state.user) return;
+                
+                const tableBody = document.getElementById('table-body');
+                const statTotal = document.getElementById('stat-total');
+                const path = collection(state.db, 'artifacts', appId, 'public', 'data', 'attendances');
+                
+                // NO complex queries (orderBy/where) based on instructions, fetch all and sort client side
+                
+                tableBody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-gray-500"><div class="spinner border-blue-500 mx-auto mb-2 border-t-transparent"></div>Memuat data dari server...</td></tr>';
+
+                // Real-time listener
+                state.unsubscribe = onSnapshot(path, 
+                    (snapshot) => {
+                        const docs = [];
+                        snapshot.forEach(doc => {
+                            docs.push({ id: doc.id, ...doc.data() });
+                        });
+                        
+                        // Sort by timestamp descending in memory
+                        docs.sort((a, b) => b.timestamp - a.timestamp);
+                        state.attendances = docs; // save state for exports
+
+                        statTotal.textContent = docs.length;
+
+                        if (docs.length === 0) {
+                            tableBody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-gray-500 italic">Belum ada data absensi.</td></tr>';
+                            return;
+                        }
+
+                        tableBody.innerHTML = '';
+                        docs.forEach((data, index) => {
+                            const distStr = data.distanceKm < 1 ? `${Math.round(data.distanceKm*1000)} M` : `${data.distanceKm.toFixed(2)} KM`;
+                            
+                            const tr = document.createElement('tr');
+                            tr.className = "hover:bg-gray-50 transition";
+                            tr.innerHTML = `
+                                <td class="p-4 text-center font-medium">${index + 1}</td>
+                                <td class="p-4 font-semibold text-gray-900 capitalize">${data.name}</td>
+                                <td class="p-4 uppercase">${data.studentClass}</td>
+                                <td class="p-4 text-gray-600">${data.dateTimeStr}</td>
+                                <td class="p-4">${distStr}</td>
+                                <td class="p-4">
+                                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold border border-green-200">
+                                        <i class="fas fa-check-circle mr-1"></i> Valid
+                                    </span>
+                                </td>
+                            `;
+                            tableBody.appendChild(tr);
+                        });
+                    },
+                    (error) => {
+                        console.error("Listen failed: ", error);
+                        tableBody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-red-500">Gagal memuat data sinkronisasi.</td></tr>';
+                    }
+                );
+            },
+
+            // --- Export Functions ---
+            
+            exportToExcel() {
+                if (state.attendances.length === 0) {
+                    ui.showModal('info', 'Data Kosong', 'Belum ada data untuk diekspor.');
+                    return;
+                }
+                
+                let csvContent = "data:text/csv;charset=utf-8,";
+                csvContent += "No,Nama Siswa,Kelas,Waktu & Tanggal,Jarak dari Sekolah (KM),Status\n";
+
+                state.attendances.forEach((data, index) => {
+                    const row = [
+                        index + 1,
+                        `"${data.name}"`, // Quote strings to handle commas in names if any
+                        `"${data.studentClass}"`,
+                        `"${data.dateTimeStr}"`,
+                        data.distanceKm.toFixed(4),
+                        "Valid"
+                    ];
+                    csvContent += row.join(",") + "\n";
+                });
+
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `Absensi_OSN_Biologi_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            },
+
+            exportToWord() {
+                if (state.attendances.length === 0) {
+                    ui.showModal('info', 'Data Kosong', 'Belum ada data untuk diekspor.');
+                    return;
+                }
+
+                const preHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+                <head>
+                    <meta charset='utf-8'>
+                    <title>Absensi OSN Biologi</title>
+                    <style>
+                        table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
+                        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+                        th { background-color: #f2f2f2; }
+                        h2, h3, p { text-align: center; font-family: Arial, sans-serif; }
+                    </style>
+                </head><body>
+                <h2>Laporan Kehadiran OSN Biologi</h2>
+                <h3>SMAN 2 Banjarmasin</h3>
+                <p>Dicetak pada: ${new Date().toLocaleString('id-ID')}</p>
+                <table>`;
+                
+                let tableRows = `<tr>
+                    <th>No</th><th>Nama Siswa</th><th>Kelas</th><th>Waktu & Tanggal</th><th>Jarak</th><th>Status</th>
+                </tr>`;
+
+                state.attendances.forEach((data, index) => {
+                    const distStr = data.distanceKm < 1 ? `${Math.round(data.distanceKm*1000)} M` : `${data.distanceKm.toFixed(2)} KM`;
+                    tableRows += `<tr>
+                        <td>${index + 1}</td>
+                        <td>${data.name}</td>
+                        <td>${data.studentClass}</td>
+                        <td>${data.dateTimeStr}</td>
+                        <td>${distStr}</td>
+                        <td>Valid</td>
+                    </tr>`;
+                });
+
+                const postHtml = "</table></body></html>";
+                const html = preHtml + tableRows + postHtml;
+
+                const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+                const url = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(html);
+                const filename = `Absensi_OSN_Biologi_${new Date().toISOString().split('T')[0]}.doc`;
+                
+                const link = document.createElement("a");
+                document.body.appendChild(link);
+                if (navigator.msSaveOrOpenBlob) {
+                    navigator.msSaveOrOpenBlob(blob, filename);
+                } else {
+                    link.href = url;
+                    link.download = filename;
+                    link.click();
+                }
+                document.body.removeChild(link);
+            },
+
+            exportToPDF() {
+                if (state.attendances.length === 0) {
+                    ui.showModal('info', 'Data Kosong', 'Belum ada data untuk diekspor.');
+                    return;
+                }
+
+                // Show Header for PDF
+                const pdfHeader = document.getElementById('pdf-header');
+                const pdfDate = document.getElementById('pdf-date');
+                pdfDate.textContent = `Dicetak pada: ${new Date().toLocaleString('id-ID')}`;
+                pdfHeader.classList.remove('hidden');
+
+                const element = document.getElementById('export-table-container');
+                const opt = {
+                    margin:       0.5,
+                    filename:     `Absensi_OSN_Biologi_${new Date().toISOString().split('T')[0]}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true },
+                    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+                };
+
+                // Add loading indicator manually here if wanted
+                html2pdf().set(opt).from(element).save().then(() => {
+                    // Hide Header again after saving
+                    pdfHeader.classList.add('hidden');
+                });
+            }
+        };
+
+        // Expose to window for inline onclick handlers
+        window.ui = ui;
+        window.app = app;
+
+        // Initialize on load
+        window.onload = () => {
+            initFirebase();
+        };
+
+    </script>
+</body>
+</html>
